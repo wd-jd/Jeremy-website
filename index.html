@@ -1,59 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Simple Website</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background-color: #f5f5f5;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background-color: #4CAF50;
-      color: white;
-      padding: 20px;
-    }
-    section {
-      padding: 40px;
-    }
-    button, a.button {
-      display: inline-block;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 16px;
-      text-decoration: none;
-    }
-    button:hover, a.button:hover {
-      background-color: #45a049;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toy Spinner</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: radial-gradient(circle, #fff9c4, #ffeb3b);
+        }
+
+        h1 { color: #5d4037; text-shadow: 2px 2px white; margin-bottom: 10px; }
+
+        .wheel-outer {
+            position: relative;
+            width: 420px;
+            height: 420px;
+            border: 10px solid #5d4037;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .arrow {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; 
+            height: 0; 
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #e91e63;
+            z-index: 100;
+        }
+
+        canvas {
+            border-radius: 50%;
+            transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+        }
+
+        button {
+            margin-top: 30px;
+            padding: 15px 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            box-shadow: 0 5px 0 #c2185b;
+            transition: 0.1s;
+        }
+
+        button:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #c2185b;
+        }
+
+        /* Celebration Popup */
+        #winner-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        #winner-img {
+            width: 250px;
+            height: 250px;
+            object-fit: cover;
+            border: 8px solid white;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        #winner-overlay h2 { font-size: 3rem; margin: 0; }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>Welcome to Jeremy's Website!</h1>
-    <h2>This is my coding project landing page</h2>
-  </header>
 
-  <section>
-    <p>This is a very simple one-page website built with HTML and CSS.</p>
-    <p>This is my coding project, enjoy!!</p>
-    <img src="https://i.postimg.cc/Mp0qY8yK/Jeremy-Informational-Text-Research-Any-1.png" >
-    <p>Click below to visit my Scratch game</p>
+    <h1>🧸 Sleepy Time Picker! 🌙</h1>
+    
+    <div class="wheel-outer">
+        <div class="arrow"></div>
+        <canvas id="wheel" width="420" height="420"></canvas>
+    </div>
 
-    <!-- 🎯 Link to Canvas -->
-    <a href="https://scratch.mit.edu/projects/1007765840" target="_blank" class="button">Bouncing apple</a>
-  </section>
+    <button id="spinBtn">SPIN!</button>
 
-  <footer>
-    <p>© 2025 Jeremy Website</p>
-  </footer>
+    <div id="winner-overlay" onclick="this.style.display='none'">
+        <h2 id="winner-name"></h2>
+        <img id="winner-img" src="" alt="Toy">
+        <p>Tap to close</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const overlay = document.getElementById('winner-overlay');
+        const wName = document.getElementById('winner-name');
+        const wImg = document.getElementById('winner-img');
+
+        // TO DO: Replace URLs with your actual PostImg links!
+        const toys = [
+            { name: "Teddy", image: "https://i.postimg.cc/JhWykFMR/8ac5114b-e31b-4821-944d-5d8054ea82b1.jpg", color: "#FFEBEE" },
+            { name: "Rexy", image: "https://placehold.co/150x150?text=Rexy", color: "#E8F5E9" },
+            { name: "Bluey", image: "https://placehold.co/150x150?text=Bluey", color: "#E3F2FD" },
+            { name: "Dino", image: "https://placehold.co/150x150?text=Dino", color: "#FFF3E0" },
+            { name: "Robot", image: "https://placehold.co/150x150?text=Robot", color: "#F3E5F5" }
+        ];
+
+        let loadedImages = 0;
+        toys.forEach(toy => {
+            const img = new Image();
+            img.src = toy.image;
+            img.onload = () => {
+                loadedImages++;
+                if (loadedImages === toys.length) drawWheel();
+            };
+            toy.imgElement = img;
+        });
+
+        const size = toys.length;
+        const arc = 2 * Math.PI / size;
+        let currentRotation = 0;
+
+        function drawWheel() {
+            ctx.clearRect(0, 0, 420, 420);
+            toys.forEach((toy, i) => {
+                const angle = i * arc;
+                
+                // Draw slice
+                ctx.beginPath();
+                ctx.fillStyle = toy.color;
+                ctx.moveTo(210, 210);
+                ctx.arc(210, 210, 210, angle, angle + arc);
+                ctx.fill();
+                ctx.strokeStyle = "#5d4037";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw Name and Image
+                ctx.save();
+                ctx.translate(210, 210);
+                ctx.rotate(angle + arc / 2);
+                
+                // Add Text Name
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#333";
+                ctx.font = "bold 18px Arial";
+                ctx.fillText(toy.name, 190, -45); // Positioned above image
+
+                // Add Image (circular crop)
+                ctx.beginPath();
+                ctx.arc(140, 0, 40, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(toy.imgElement, 100, -40, 80, 80);
+                
+                ctx.restore();
+            });
+        }
+
+        function spin() {
+            spinBtn.disabled = true;
+            const extraDegrees = Math.floor(Math.random() * 360);
+            const spinAmount = (Math.floor(Math.random() * 5) + 5) * 360 + extraDegrees;
+            currentRotation += spinAmount;
+            
+            canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                spinBtn.disabled = false;
+                const actualDeg = currentRotation % 360;
+                // Offset calculation to find what's at the top arrow
+                const correctedDeg = (360 - actualDeg + 270) % 360;
+                const index = Math.floor(correctedDeg / (360 / size));
+                
+                // Show Winner
+                wName.innerText = toys[index].name;
+                wImg.src = toys[index].image;
+                overlay.style.display = 'flex';
+            }, 4000);
+        }
+
+        spinBtn.addEventListener('click', spin);
+    </script>
 </body>
 </html>
